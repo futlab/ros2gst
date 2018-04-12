@@ -45,8 +45,20 @@ static void prepare_buffer(GstAppSrc* appsrc, cv::Mat image) {
 }
 
 GstElement *pipeline = nullptr;
+std::string udpTarget;
 
-GstElement *makePipeline(int width, int height, bool color = true)
+void parseTarget(const std::string &target, std::string *addr, int *port)
+{
+    auto pos = target.find(':');
+    if (pos == std::string::npos) {
+        *addr = target;
+    } else {
+        *addr = target.substr(0, pos);
+        *port = std::atoi(target.c_str() + pos + 1);
+    }
+}
+
+GstElement *makePipeline(int width, int height, const std::string &udpTarget, bool color = true)
 {
     GstElement *appsrc, *conv, *videosink;
 
@@ -90,8 +102,11 @@ GstElement *makePipeline(int width, int height, bool color = true)
     gst_util_set_object_arg(G_OBJECT (enc), "speed-preset", "superfast");
     g_object_set (G_OBJECT (enc), "bitrate", 500, NULL);
 
-    g_object_set (G_OBJECT (udp), "host", "192.168.0.202", NULL);
-    g_object_set (G_OBJECT (udp), "port", 5600, NULL);
+    std::string addr;
+    int port = 5600;
+    parseTarget(udpTarget, &addr, &port);
+    g_object_set (G_OBJECT (udp), "host", addr, NULL);
+    g_object_set (G_OBJECT (udp), "port", port, NULL);
 
     gst_bin_add_many (GST_BIN (pipeline), appsrc, conv, filter, enc, pay, udp, NULL);
     if (!gst_element_link_many (appsrc, conv, filter, enc, pay, udp, NULL))
@@ -117,7 +132,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr &msg)
     ROS_INFO_ONCE("Image received");
     cv::Mat image = cv_bridge::toCvCopy(msg, "bgr8")->image;
     if(!appsrc) {
-        appsrc = makePipeline(image.cols, image.rows);
+        appsrc = makePipeline(image.cols, image.rows, udpTarget);
         if (!appsrc) {
             ROS_FATAL("Unable to make pipeline");
             return;
@@ -137,7 +152,7 @@ void disparityCallback(const stereo_msgs::DisparityImage &msg)
         fi.convertTo(bi, CV_8U, 255.0 / msg.max_disparity);
         //drawHist(bi);
         if(!appsrc) {
-            appsrc = makePipeline(bi.cols, bi.rows, false);
+            appsrc = makePipeline(bi.cols, bi.rows, udpTarget, false);
             if (!appsrc) {
                 ROS_FATAL("Unable to make pipeline");
                 return;
@@ -156,8 +171,10 @@ gint main(gint argc, gchar *argv[])
     ROS_INFO_ONCE("Waiting for images");
 
     ros::init(argc, argv, "ros2gst");
-    ros::NodeHandle nh;
-    //ros::Rate rate(30.0);
+    ros::NodeHandle nh, nhp("~");
+    if (!nhp.getParam("udp_target", udpTarget)) {
+        ROS_FATAL("Unable to get udp_target");
+    }
 
     ros::Subscriber subImg = nh.subscribe("image", 5, &imageCallback);
     ros::Subscriber subDisparity = nh.subscribe("disparity", 5, &disparityCallback);

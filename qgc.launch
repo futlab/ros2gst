@@ -1,7 +1,9 @@
 <?xml version="1.0"?>
 <launch>
+	<arg name="udp_target" />
 	<arg name="log_output" default="screen" />
 	<node pkg="ros2gst" type="ros2gst" name="ros2gst" respawn="true" clear_params="true" output="screen">
 		<remap from="/image" to="/state_image"/>
+		<param name="udp_target" value="$(arg udp_target)"/>
 	</node>
 </launch>
