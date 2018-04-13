@@ -17,31 +17,30 @@
 #include <stdint.h>
 
 static void prepare_buffer(GstAppSrc* appsrc, cv::Mat image) {
+    static GstClockTime timestamp = 0;
 
-  static GstClockTime timestamp = 0;
-  GstBuffer *buffer;
-  guint size;
-  GstFlowReturn ret;
+    void *data = (void *)image.datastart;
+    guint size = image.dataend - image.datastart;
 
-  //if (!want) return;
-  //want = 0;
+    GstBuffer *buffer = gst_buffer_new_allocate (NULL, size, NULL);
+    GstMapInfo info;
+    gst_buffer_map(buffer, &info, (GstMapFlags)GST_MAP_READ);
+    memcpy(info.data, (guint8*)data, size);
+    gst_buffer_unmap(buffer, &info);
 
-  void *data = (void *)image.datastart;
-  size = image.dataend - image.datastart;
+    //buffer = gst_buffer_new_wrapped_full( GST_MEMORY_FLAG_NO_SHARE, (gpointer)data, size, 0, size, NULL, NULL );
 
-  buffer = gst_buffer_new_wrapped_full( GST_MEMORY_FLAG_NO_SHARE, (gpointer)data, size, 0, size, NULL, NULL );
+    GST_BUFFER_PTS (buffer) = timestamp;
+    GST_BUFFER_DURATION (buffer) = gst_util_uint64_scale_int (1, GST_SECOND, 4);
 
-  GST_BUFFER_PTS (buffer) = timestamp;
-  GST_BUFFER_DURATION (buffer) = gst_util_uint64_scale_int (1, GST_SECOND, 4);
+    timestamp += GST_BUFFER_DURATION (buffer);
 
-  timestamp += GST_BUFFER_DURATION (buffer);
+    GstFlowReturn ret = gst_app_src_push_buffer(appsrc, buffer);
 
-  ret = gst_app_src_push_buffer(appsrc, buffer);
-
-  if (ret != GST_FLOW_OK) {
-    /* something wrong, stop pushing */
-    // g_main_loop_quit (loop);
-  }
+    if (ret != GST_FLOW_OK) {
+        /* something wrong, stop pushing */
+        // g_main_loop_quit (loop);
+    }
 }
 
 GstElement *pipeline = nullptr;
@@ -130,7 +129,7 @@ GstElement *appsrc = nullptr;
 void imageCallback(const sensor_msgs::ImageConstPtr &msg)
 {
     ROS_INFO_ONCE("Image received");
-    cv::Mat image = cv_bridge::toCvCopy(msg, "bgr8")->image;
+    cv::Mat image = cv_bridge::toCvShare(msg, "bgr8")->image;
     if(!appsrc) {
         appsrc = makePipeline(image.cols, image.rows, udpTarget);
         if (!appsrc) {
