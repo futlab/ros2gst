@@ -12,8 +12,6 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   cv_bridge
   sensor_msgs
-  #stereo_msgs
-  #message_generation
   image_transport
 )
 
@@ -26,12 +24,9 @@ pkg_check_modules(GST REQUIRED
 pkg_check_modules(GSTAPP REQUIRED
     gstreamer-app-1.0>=1.4
 )
-
-
-#gstreamer-sdp-1.0>=1.4
-#gstreamer-video-1.0>=1.4
-
-
+pkg_check_modules(GSTPB REQUIRED
+    gstreamer-pbutils-1.0>=1.4
+)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -137,7 +132,10 @@ catkin_package(
 ## Your package locations should be listed before other locations
 # include_directories(include)
 include_directories(
-  ${catkin_INCLUDE_DIRS} ${GST_INCLUDE_DIRS} ${GSTAPP_INCLUDE_DIRS}
+    include
+    ${catkin_INCLUDE_DIRS}
+    ${GST_INCLUDE_DIRS}
+    ${GSTAPP_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -151,7 +149,10 @@ include_directories(
 # add_dependencies(autopilot ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Declare a C++ executable
-add_executable(ros2gst ros2gst.cpp)
+add_executable(ros2gst
+    src/ros2gst.cpp
+    src/pipeline.cpp
+)
 
 
 ##add_executable(autopilot_test src/autopilot_test.cpp)
@@ -166,6 +167,7 @@ add_executable(ros2gst ros2gst.cpp)
    ${OpenCV_LIBRARIES}
    ${GST_LIBRARIES}
    ${GSTAPP_LIBRARIES}
+   ${GSTPB_LIBRARIES}
  )
 
 #############
