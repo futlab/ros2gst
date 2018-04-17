@@ -15,6 +15,7 @@
 
 std::unique_ptr<Pipeline> pipeline;
 std::string udpTarget;
+cv::Size size;
 double fps = 15;
 
 void parseTarget(const std::string &target, std::string *addr, int *port)
@@ -47,6 +48,8 @@ void imageCallback(const sensor_msgs::ImageConstPtr &msg)
 {
     ROS_INFO_ONCE("Image received");
     cv::Mat image = cv_bridge::toCvShare(msg, "bgr8")->image;
+    if (!size.empty())
+        cv::resize(image, image, size);
     if(!pipeline)
         makePipeline(image.cols, image.rows, true);
     pipeline->write(image);
@@ -79,6 +82,11 @@ gint main(gint argc, gchar *argv[])
     ros::NodeHandle nh, nhp("~");
     if (!nhp.getParam("udp_target", udpTarget)) {
         ROS_FATAL("Unable to get udp_target");
+    }
+    std::string sizeStr;
+    if (nhp.getParam("size", sizeStr)) {
+        auto pos = sizeStr.find('x');
+        size = cv::Size(std::atoi(sizeStr.c_str()), std::atoi(sizeStr.c_str() + pos + 1));
     }
 
     ros::Subscriber subImg = nh.subscribe("image", 5, &imageCallback);
