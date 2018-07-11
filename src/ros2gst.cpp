@@ -18,30 +18,12 @@ std::string udpTarget;
 cv::Size size;
 double fps = 15;
 
-void parseTarget(const std::string &target, std::string *addr, int *port)
-{
-    auto pos = target.find(':');
-    if (pos == std::string::npos) {
-        *addr = target;
-    } else {
-        *addr = target.substr(0, pos);
-        *port = std::atoi(target.c_str() + pos + 1);
-    }
-}
-
-void makePipeline(int w, int h, bool c)
+void makePipeline(const cv::Size &size, bool c)
 {
     using namespace std;
-    string addr;
-    int port = 5600;
-    parseTarget(udpTarget, &addr, &port);
-    string src = "appsrc ! video/x-raw,format=" + string(c ? "BGR" : "GRAY8") + ",width=" + to_string(w) + ",height=" + to_string(h) + ",framerate=" + to_string((int)fps) + "/1 ";
-    string conv = "! videoconvert ! video/x-raw,format=I420 ";
-    string enc = "! x264enc tune=zerolatency bitrate=500 speed-preset=superfast ! rtph264pay ";
-    string sink = "! udpsink host=" + addr + " port=" + to_string(port);
-    string full = src + conv + enc + sink;
+    string full = buildPipelineDesc(udpTarget, size, fps, c);
     ROS_INFO("cmd: gst-launch-1.0 -v %s", full.c_str());
-    pipeline = make_unique<Pipeline>(cv::Size(w, h), c, full, fps);
+    pipeline = make_unique<Pipeline>(size, c, full, fps);
 }
 
 void imageCallback(const sensor_msgs::ImageConstPtr &msg)
@@ -51,7 +33,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr &msg)
     if (!size.empty())
         cv::resize(image, image, size);
     if(!pipeline)
-        makePipeline(image.cols, image.rows, true);
+        makePipeline(image.size(), true);
     pipeline->write(image);
 }
 
@@ -64,7 +46,7 @@ void disparityCallback(const stereo_msgs::DisparityImage &msg)
         cv::Mat fi( mi.height, mi.width, CV_32FC1, (void *)&(mi.data[0])), bi;
         fi.convertTo(bi, CV_8U, 255.0 / msg.max_disparity);
         if(!pipeline) {
-            makePipeline(bi.cols, bi.rows, false);
+            makePipeline(bi.size(), false);
         }
         pipeline->write(bi);
     }

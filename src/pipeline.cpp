@@ -171,3 +171,27 @@ void Pipeline::handleMessages()
     }
     gst_object_unref(GST_OBJECT(bus));
 }
+
+void parseTarget(const std::string &target, std::string *addr, int *port)
+{
+    auto pos = target.find(':');
+    if (pos == std::string::npos) {
+        *addr = target;
+    } else {
+        *addr = target.substr(0, pos);
+        *port = std::atoi(target.c_str() + pos + 1);
+    }
+}
+
+std::string buildPipelineDesc(const std::string &udpTarget, cv::Size size, int fps, bool color)
+{
+    using namespace std;
+    int port = 5600;
+    string addr;
+    parseTarget(udpTarget, &addr, &port);
+    string src = "appsrc ! video/x-raw,format=" + string(color ? "BGR" : "GRAY8") + ",width=" + to_string(size.width) + ",height=" + to_string(size.height) + ",framerate=" + to_string(fps) + "/1 ";
+    string conv = "! videoconvert ! video/x-raw,format=I420 ";
+    string enc = "! x264enc tune=zerolatency bitrate=500 speed-preset=superfast ! rtph264pay ";
+    string sink = "! udpsink host=" + addr + " port=" + to_string(port);
+    return src + conv + enc + sink;
+}

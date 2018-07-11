@@ -118,9 +118,9 @@ pkg_check_modules(GSTPB REQUIRED
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-  LIBRARIES ros2gst
-  CATKIN_DEPENDS roscpp std_msgs cv_bridge # stereo_msgs
+    INCLUDE_DIRS include
+    LIBRARIES gstpipeline
+    CATKIN_DEPENDS roscpp std_msgs cv_bridge # stereo_msgs
 #  DEPENDS system_lib
 )
 
@@ -139,9 +139,16 @@ include_directories(
 )
 
 ## Declare a C++ library
-# add_library(autopilot
-#   src/${PROJECT_NAME}/autopilot.cpp
-# )
+add_library(gstpipeline
+    src/pipeline.cpp
+)
+
+target_link_libraries(gstpipeline
+   ${OpenCV_LIBRARIES}
+   ${GST_LIBRARIES}
+   ${GSTAPP_LIBRARIES}
+   ${GSTPB_LIBRARIES}
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -151,24 +158,18 @@ include_directories(
 ## Declare a C++ executable
 add_executable(ros2gst
     src/ros2gst.cpp
-    src/pipeline.cpp
 )
-
-
-##add_executable(autopilot_test src/autopilot_test.cpp)
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
 # add_dependencies(autopilot_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
- target_link_libraries(ros2gst
-   ${catkin_LIBRARIES}
-   ${OpenCV_LIBRARIES}
-   ${GST_LIBRARIES}
-   ${GSTAPP_LIBRARIES}
-   ${GSTPB_LIBRARIES}
- )
+target_link_libraries(ros2gst
+    gstpipeline
+    ${catkin_LIBRARIES}
+    ${OpenCV_LIBRARIES}
+)
 
 #############
 ## Install ##

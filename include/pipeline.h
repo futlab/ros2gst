@@ -19,4 +19,6 @@ public:
     ~Pipeline();
 };
 
+std::string buildPipelineDesc(const std::string &udpTarget, cv::Size size, int fps, bool color = true);
+
 #endif // PIPELINE_H
