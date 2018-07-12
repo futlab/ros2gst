@@ -143,10 +143,10 @@ void Pipeline::handleMessages()
             case GST_MESSAGE_STATE_CHANGED:
                 GstState oldstate, newstate, pendstate;
                 gst_message_parse_state_changed(msg, &oldstate, &newstate, &pendstate);
-                ROS_INFO("%s: state changed from %s to %s (pending: %s)",
+                /*ROS_INFO("%s: state changed from %s to %s (pending: %s)",
                     gst_element_get_name(GST_MESSAGE_SRC (msg)),
                     gst_element_state_get_name(oldstate),
-                    gst_element_state_get_name(newstate), gst_element_state_get_name(pendstate));
+                    gst_element_state_get_name(newstate), gst_element_state_get_name(pendstate));*/
                 break;
             case GST_MESSAGE_ERROR:
                 gst_message_parse_error(msg, &err, &debug);
@@ -160,10 +160,10 @@ void Pipeline::handleMessages()
                 GstStreamStatusType tp;
                 GstElement *elem;
                 gst_message_parse_stream_status(msg, &tp, &elem);
-                ROS_INFO("stream status: elem %s, %i", GST_ELEMENT_NAME(elem), tp);
+                //ROS_INFO("stream status: elem %s, %i", GST_ELEMENT_NAME(elem), tp);
                 break;
             default:
-                ROS_WARN("unhandled message %s",GST_MESSAGE_TYPE_NAME(msg));
+                //ROS_WARN("unhandled message %s",GST_MESSAGE_TYPE_NAME(msg));
                 break;
             }
             gst_message_unref(msg);
