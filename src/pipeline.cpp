@@ -191,7 +191,7 @@ std::string buildPipelineDesc(const std::string &udpTarget, cv::Size size, int f
     parseTarget(udpTarget, &addr, &port);
     string src = "appsrc ! video/x-raw,format=" + string(color ? "BGR" : "GRAY8") + ",width=" + to_string(size.width) + ",height=" + to_string(size.height) + ",framerate=" + to_string(fps) + "/1 ";
     string conv = "! videoconvert ! video/x-raw,format=I420 ";
-    string enc = "! x264enc tune=zerolatency bitrate=500 speed-preset=superfast ! rtph264pay ";
+    string enc = "! x264enc tune=zerolatency bitrate=500 speed-preset=superfast intra-refresh=true key-int-max=3 ! rtph264pay ";
     string sink = "! udpsink host=" + addr + " port=" + to_string(port);
     return src + conv + enc + sink;
 }
